@@ -143,7 +143,7 @@ deploy the backend elsewhere (Render, Railway, etc).
 
 Interactive API docs available at `http://localhost:8000/docs` once running.
 
-## What's next (stretch goals if you have time left)
+## What's next
 
 - Swap SQLite/numpy for Supabase + pgvector for a "real" production story
 - Add a Maintenance/RCA agent that cross-references entities across documents
