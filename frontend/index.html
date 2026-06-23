@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Industrial Knowledge Intelligence</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #161d27;
+    --border: #263240;
+    --accent: #4fd1a5;
+    --text: #e6edf3;
+    --muted: #8b9aab;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+  }
+  .sidebar {
+    width: 320px;
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    overflow-y: auto;
+    background: var(--panel);
+  }
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  h2 { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 24px 0 10px; }
+  .subtitle { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .upload-box {
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .upload-box:hover { border-color: var(--accent); }
+  .doc-item, .entity-item {
+    font-size: 13px;
+    padding: 8px 10px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+  .doc-item { cursor: pointer; }
+  .doc-item:hover { background: rgba(79,209,165,0.08); }
+  .entity-type {
+    font-size: 10px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .chat-log {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    padding-right: 8px;
+  }
+  .msg { margin-bottom: 16px; max-width: 75%; }
+  .msg.user { margin-left: auto; text-align: right; }
+  .bubble {
+    display: inline-block;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .msg.user .bubble { background: var(--accent); color: #08251a; }
+  .msg.bot .bubble { background: var(--panel); border: 1px solid var(--border); }
+  .sources { margin-top: 6px; font-size: 11px; color: var(--muted); }
+  .input-row { display: flex; gap: 8px; }
+  input[type=text] {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px;
+  }
+  button {
+    padding: 12px 18px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #08251a;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .compliance-btn {
+    margin-top: 8px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  .flag-met { color: #4fd1a5; }
+  .flag-partial { color: #f2c94c; }
+  .flag-missing { color: #eb5757; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <h1>⚙️ Industrial Knowledge Brain</h1>
+  <div class="subtitle">RAG + Knowledge Graph over plant documents</div>
+
+  <div class="upload-box" id="uploadBox">
+    <input type="file" id="fileInput" style="display:none" accept=".pdf,.txt,.md" />
+    📄 Click to upload a document
+  </div>
+
+  <h2>Documents</h2>
+  <div id="docList"><span style="color:var(--muted);font-size:13px;">No documents yet</span></div>
+
+  <h2>Entities (selected doc)</h2>
+  <div id="entityList"><span style="color:var(--muted);font-size:13px;">Select a document above</span></div>
+</div>
+
+<div class="main">
+  <h2 style="margin-top:0">Ask the Copilot</h2>
+  <div class="chat-log" id="chatLog"></div>
+  <div class="input-row">
+    <input type="text" id="questionInput" placeholder="e.g. What gas reading triggers evacuation for COB-03?" />
+    <button id="askBtn">Ask</button>
+  </div>
+</div>
+
+<script>
+const API_BASE = "http://localhost:8000"; // change to your deployed backend URL
+
+let selectedDocId = null;
+
+async function loadDocuments() {
+  const res = await fetch(`${API_BASE}/documents`);
+  const docs = await res.json();
+  const docList = document.getElementById("docList");
+  if (docs.length === 0) {
+    docList.innerHTML = '<span style="color:var(--muted);font-size:13px;">No documents yet</span>';
+    return;
+  }
+  docList.innerHTML = docs.map(d => `
+    <div class="doc-item" data-id="${d.id}">📄 ${d.filename}</div>
+  `).join("");
+  document.querySelectorAll(".doc-item").forEach(el => {
+    el.addEventListener("click", () => selectDocument(el.dataset.id, el.textContent));
+  });
+}
+
+async function selectDocument(docId, label) {
+  selectedDocId = docId;
+  const res = await fetch(`${API_BASE}/entities/${docId}`);
+  const entities = await res.json();
+  const entityList = document.getElementById("entityList");
+  if (entities.length === 0) {
+    entityList.innerHTML = '<span style="color:var(--muted);font-size:13px;">No entities extracted</span>';
+  } else {
+    entityList.innerHTML = entities.map(e => `
+      <div class="entity-item">
+        <div class="entity-type">${e.entity_type}</div>
+        <div>${e.entity_value}</div>
+      </div>
+    `).join("");
+  }
+  entityList.innerHTML += `<button class="compliance-btn" onclick="runCompliance(${docId})">Run compliance check</button>
+    <div id="complianceResult"></div>`;
+}
+
+async function runCompliance(docId) {
+  const resultBox = document.getElementById("complianceResult");
+  resultBox.innerHTML = "Checking...";
+  const res = await fetch(`${API_BASE}/compliance-check`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ doc_id: parseInt(docId) }),
+  });
+  const data = await res.json();
+  resultBox.innerHTML = data.flags.map(f => `
+    <div class="entity-item">
+      <div class="flag-${f.status}">${f.status.toUpperCase()}</div>
+      <div>${f.regulation}</div>
+      <div style="color:var(--muted)">${f.note}</div>
+    </div>
+  `).join("");
+}
+
+document.getElementById("uploadBox").addEventListener("click", () => {
+  document.getElementById("fileInput").click();
+});
+
+document.getElementById("fileInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append("file", file);
+  document.getElementById("uploadBox").textContent = "Uploading & processing...";
+  const res = await fetch(`${API_BASE}/ingest`, { method: "POST", body: formData });
+  const data = await res.json();
+  document.getElementById("uploadBox").textContent = "📄 Click to upload a document";
+  await loadDocuments();
+  alert(`Ingested: ${data.chunks_created} chunks, ${data.entities_extracted} entities extracted`);
+});
+
+function appendMessage(role, text, sources = []) {
+  const log = document.getElementById("chatLog");
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+  let html = `<div class="bubble">${text}</div>`;
+  if (sources.length > 0) {
+    const uniqueFilenames = [...new Set(sources.map(s => s.filename))];
+    html += `<div class="sources">Sources: ${uniqueFilenames.join(", ")}</div>`;
+  }
+  div.innerHTML = html;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+document.getElementById("askBtn").addEventListener("click", askQuestion);
+document.getElementById("questionInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") askQuestion();
+});
+
+async function askQuestion() {
+  const input = document.getElementById("questionInput");
+  const question = input.value.trim();
+  if (!question) return;
+  appendMessage("user", question);
+  input.value = "";
+  const askBtn = document.getElementById("askBtn");
+  askBtn.disabled = true;
+
+  try {
+    const res = await fetch(`${API_BASE}/ask`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+    const data = await res.json();
+    appendMessage("bot", data.answer, data.sources);
+  } catch (err) {
+    appendMessage("bot", "Error reaching the backend. Is it running?");
+  } finally {
+    askBtn.disabled = false;
+  }
+}
+
+loadDocuments();
+</script>
+
+</body>
+</html>

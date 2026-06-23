@@ -1,0 +1,32 @@
+PERMIT TO WORK PROCEDURE - COKE OVEN BATTERY MAINTENANCE
+Document Ref: SOP-COB-014
+Effective Date: 14-Jan-2025
+
+1. SCOPE
+This procedure applies to all maintenance, inspection, and confined space entry
+activities carried out on Coke Oven Battery No. 3 (Equipment Tag: COB-03-MAIN).
+
+2. HAZARD IDENTIFICATION
+Coke oven batteries generate hazardous gases including carbon monoxide and
+hydrogen sulfide. Gas detector GD-COB03-07 must show readings below 35 ppm CO
+before any hot work permit is issued in the vicinity.
+
+3. PERMIT REQUIREMENTS
+Before issuing a hot work permit within 50 meters of COB-03-MAIN, the shift
+supervisor must verify:
+- Current gas detector readings from GD-COB03-07
+- No confined space entry permit is active within the same zone
+- PPE: FR coveralls, SCBA standby, gas monitor on person
+
+4. EMERGENCY RESPONSE
+In the event of a gas alarm (>50ppm CO), all personnel must evacuate to
+Assembly Point AP-4 immediately. Shift supervisor notifies Control Room within
+2 minutes. Reference: Factory Act 1948, Section 38 (Precautions in case of fire).
+
+5. REGULATORY REFERENCE
+This procedure complies with OISD-STD-105 (Process Safety Management) and
+DGMS Circular 7/2019 on confined space entry in metallurgical plants.
+
+6. INSPECTION SCHEDULE
+Gas detectors GD-COB03-01 through GD-COB03-12 are inspected weekly by the
+Instrumentation team. Calibration records maintained per ISO 9001 QMS.
